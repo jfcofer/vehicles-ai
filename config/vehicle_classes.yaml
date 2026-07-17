@@ -1,0 +1,19 @@
+# config/vehicle_classes.yaml
+
+in_scope:
+  AUTOMOVIL:
+    cu: 1.0
+  CAMIONETA:
+    cu: 1.4
+  JEEP:
+    cu: 1.1
+  MOTOCICLETA:
+    cu: 0.2
+
+out_of_scope:
+  - CAMION
+  - ESPECIAL
+  - OMNIBUS
+  - TANQUERO
+  - TRAILER
+  - VOLQUETA
