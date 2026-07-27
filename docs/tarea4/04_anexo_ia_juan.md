@@ -133,6 +133,24 @@ techo estricto para el modelo, porque predecir la moda de una variable aleatoria
 con una muestra más a menudo de lo que dos muestras independientes coinciden entre sí.
 Lo que sí cuantifica es cuánta de la etiqueta es arbitraria.
 
+**Desconfiar de la propia conclusión, y medirla.** Esa salvedad quedó escrita como una nota
+al pie, y la conclusión que circuló fue la cómoda: *"el 60 % de la etiqueta es ruido, el
+modelo está cerca del techo"*. Era falsa, y sostenerla habría cerrado la investigación justo
+antes del hallazgo. Se derivó entonces el techo en forma cerrada —dos vehículos de la misma
+clase tienen features idénticas, luego la exactitud está acotada por
+`Σ_c max_t n(c,t) / N`— y resultó ser **0,9243**, no 0,3983: el modelo capturaba el 58,8 %
+de lo alcanzable, no el 100 %.
+
+Al descomponer la brecha aparecieron **cuatro** fuentes de arbitrariedad donde se había
+visto una, y la dominante resultó eliminable: el orden aleatorio de la flota cambia el
+*plan* del maestro, no sólo el *nombre* del camión, así que canonicalizar aguas abajo no la
+tocaba. Ordenando la flota antes de etiquetar —una línea— el mismo modelo pasa de 0,5297 a
+0,8458 de exactitud y de 0,2996 a 0,8131 de F1 macro, con las métricas operativas
+inalteradas. Está medido de punta a punta en `docs/tarea4/06_canonicalizacion_y_etiquetado.md`.
+
+Ninguna herramienta señaló esto; tampoco lo habría señalado, porque el error no estaba en el
+código sino en la interpretación de una métrica que ya se había calculado bien.
+
 **La métrica de concordancia por clase.** Derivada del hallazgo anterior: si cuál vehículo
 concreto de una clase recibe el cupo es una moneda al aire, la métrica debe comparar lo
 único que el maestro sí determinó —cuántos vehículos de cada clase van a cada camión—.
@@ -180,6 +198,11 @@ contaminada por el ruido medido arriba.
 - **No cuestionan la calidad de la etiqueta.** Ninguna sesión sugirió comprobar si el
   objetivo era predecible antes de intentar predecirlo. Fue necesario formular esa
   hipótesis y diseñar el experimento manualmente.
+- **Confirman la conclusión que ya se les ofrece.** Una vez instalada la idea de que la
+  etiqueta era ruido irreducible, ninguna herramienta la puso en duda: se limitaron a
+  refinar la redacción de esa conclusión. Detectar que estaba mal exigió volver a la
+  definición y calcular el techo a mano. Es la limitación más costosa de las cinco, porque
+  no produce ningún error visible — produce una investigación que se detiene antes de tiempo.
 
 ### Conclusión
 

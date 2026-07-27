@@ -179,6 +179,104 @@ def class_level_agreement(results: list[EpisodeResult]) -> dict:
     }
 
 
+def label_ceilings(
+    target_index: np.ndarray,
+    class_index: np.ndarray,
+    episode_index: np.ndarray,
+) -> dict:
+    """Cotas superiores **exactas** sobre la exactitud cruda alcanzable.
+
+    Por qué hace falta
+    ------------------
+    `scripts/teacher_self_agreement.py` mide cuánto reproduce el maestro de sí
+    mismo (0,3983) y se usa como techo empírico, pero **no es un techo estricto**:
+    predecir la moda de una variable aleatoria coincide con una muestra más a
+    menudo de lo que dos muestras independientes coinciden entre sí. Esta función
+    calcula el techo de verdad, en forma cerrada y sin entrenar nada.
+
+    De dónde salen
+    --------------
+    Dos vehículos de la misma clase en el mismo episodio tienen features
+    **idénticas** -- misma `cu`, mismo one-hot, mismo `n_misma_clase`, mismo
+    contexto de manifiesto y de flota. Ninguna entrada los distingue. Sea
+    `n(c,t)` el número de vehículos de la clase `c` que el maestro mandó al
+    destino `t` (`t = 0` es diferir), y `m_c = Σ_t n(c,t)`:
+
+    - **Cota A -- modelo determinista por vehículo.** Está obligado a predecir lo
+      mismo para todos los vehículos de la clase, así que acierta a lo sumo el
+      destino mayoritario::
+
+          techo_A = Σ_c max_t n(c,t) / N
+
+    - **Cota B -- pipeline con decodificador.** El decodificador sí reparte una
+      clase entre varios camiones, porque la capacidad se va consumiendo, pero no
+      puede saber *cuál* moto concreta diferir: empareja al azar dentro de la
+      clase. Con conteos por clase perfectos, la probabilidad de acertar el
+      destino de un vehículo de la clase `c` es `n(c,t)/m_c`::
+
+          techo_B = Σ_c Σ_t n(c,t)² / m_c / N
+
+    Siempre `techo_B <= techo_A`: repartir es peor que apostar a la moda cuando lo
+    que se mide es coincidencia vehículo a vehículo.
+
+    Propiedad importante
+    --------------------
+    Ambas cotas son **invariantes a la canonicalización**: renombrar los camiones
+    permuta el eje `t`, y ni `max_t` ni `Σ_t n²` cambian con una permutación. Es
+    la demostración formal de que canonicalizar **no puede** subir el techo de
+    exactitud -- lo que arregla es otra cosa (ver `docs/tarea4/06_*.md`).
+
+    Parámetros
+    ----------
+    Los tres vectores son paralelos, una entrada por fila de vehículo:
+    `target_index` con 0 = `SIN_CAMION` y 1..T el camión, `class_index` la clase,
+    y `episode_index` a qué episodio pertenece la fila.
+    """
+    target_index = np.asarray(target_index, dtype=np.int64)
+    class_index = np.asarray(class_index, dtype=np.int64)
+    episode_index = np.asarray(episode_index, dtype=np.int64)
+    if not (len(target_index) == len(class_index) == len(episode_index)):
+        raise ValueError("Los tres vectores deben tener la misma longitud.")
+    if len(target_index) == 0:
+        raise ValueError("No hay filas sobre las que calcular el techo.")
+
+    n_ep = int(episode_index.max()) + 1
+    n_cls = int(class_index.max()) + 1
+    n_tgt = int(target_index.max()) + 1
+
+    counts = np.zeros((n_ep, n_cls, n_tgt), dtype=np.int64)
+    np.add.at(counts, (episode_index, class_index, target_index), 1)
+
+    per_class_total = counts.sum(axis=2)  # (E, C) = m_c
+    n_per_episode = per_class_total.sum(axis=1)  # (E,)
+
+    correct_argmax = counts.max(axis=2).sum(axis=1).astype(np.float64)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        share = np.where(
+            per_class_total > 0,
+            (counts.astype(np.float64) ** 2).sum(axis=2) / per_class_total,
+            0.0,
+        )
+    correct_decoder = share.sum(axis=1)
+
+    # `episode_index` puede no ser contiguo (p.ej. tras filtrar una partición):
+    # las posiciones sin filas quedarían como 0/0 al promediar por episodio.
+    present = n_per_episode > 0
+    total = float(n_per_episode.sum())
+    return {
+        # Micro = por fila. Es la comparable con `raw_assignment_accuracy`, que
+        # sklearn calcula sobre los vectores concatenados de todos los episodios.
+        "ceiling_argmax_micro": float(correct_argmax.sum() / total),
+        "ceiling_decoder_micro": float(correct_decoder.sum() / total),
+        # Macro = media de las exactitudes por episodio; da el mismo peso a un
+        # episodio de 5 vehículos que a uno de 20.
+        "ceiling_argmax_macro": float((correct_argmax[present] / n_per_episode[present]).mean()),
+        "ceiling_decoder_macro": float((correct_decoder[present] / n_per_episode[present]).mean()),
+        "n_episodes": int(present.sum()),
+        "n_vehicle_rows": int(total),
+    }
+
+
 def _macro_f1(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[float, float]:
     from sklearn.metrics import accuracy_score, f1_score
 

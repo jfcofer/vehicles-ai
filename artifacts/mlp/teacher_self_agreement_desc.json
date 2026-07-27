@@ -1,0 +1,19 @@
+{
+  "years": [
+    2026
+  ],
+  "fleet_order": "desc",
+  "label_distribution_pct": {
+    "SIN_CAMION": 1.6884,
+    "CAMION_1": 86.0572,
+    "CAMION_2": 10.6268,
+    "CAMION_3": 1.5339,
+    "CAMION_4": 0.0938
+  },
+  "n_episodes_compared": 1158,
+  "teacher_raw_self_accuracy_mean": 0.9306098596268073,
+  "teacher_class_level_self_agreement_mean": 1.0,
+  "episodes_reproduced_identically_pct": 100.0,
+  "n_loaded_absolute_delta_mean": 0.0,
+  "cu_utilized_absolute_delta_mean": 0.0
+}

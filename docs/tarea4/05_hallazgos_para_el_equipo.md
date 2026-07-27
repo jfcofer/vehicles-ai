@@ -52,26 +52,45 @@ de 2026 con dos o más camiones):
 | \|Δ CU aprovechada\| | **0,0000** |
 
 Léanlo así: **el propio oráculo que generó las etiquetas sólo reproduce ~40 % de ellas**,
-mientras que el resultado operativo es 100 % determinista. El ~60 % restante es ruido de
-desempate. Ningún modelo — ni el mío, ni LightGBM, ni Random Forest — puede predecirlo,
-porque no está en las entradas.
+mientras que el resultado operativo es 100 % determinista.
 
-**Consecuencia práctica: si están midiendo el éxito por accuracy, están midiendo el
-techo del ruido, no la calidad del plan.** Mi MLP saca 0,5297 de exactitud cruda, por
-encima de la autoconsistencia del maestro, y aun así entrega planes que igualan el conteo
-óptimo en el 97,78 % de los episodios.
+> ## ⚠ Corrección (27 de julio)
+>
+> Aquí decía que *"el ~60 % restante es ruido de desempate"* y que ningún modelo podía
+> predecirlo. **Eso estaba mal, y la diferencia es grande.** Al descomponer la
+> arbitrariedad resultó que son cuatro fuentes distintas, no una:
+>
+> - **La mayor parte de ese 60 % es eliminable**: viene de que `generate_fleet()` devuelve
+>   las capacidades en orden aleatorio, lo que cambia el **plan** que produce la PD, no
+>   sólo el **nombre** del camión. Canonicalizar aguas abajo no lo arregla.
+> - **El ruido de verdad irreducible es de ~8 puntos, no de 60.** El techo exacto de
+>   exactitud cruda, calculado en forma cerrada, es **0,9243** sobre 2026 — no 0,3983.
+>   La autoconsistencia del maestro nunca fue un techo (yo mismo lo había anotado como
+>   salvedad); ahora está el número correcto.
+> - Ordenando la flota **antes** de etiquetar — una línea en `scenarios.py` — la exactitud
+>   del mismo modelo pasa de **0,5297 a 0,8458**, el F1 macro de **0,2996 a 0,8131** y el
+>   *recall* de `CAMION_4` de **0,000 a 0,872**, sin mover las métricas operativas.
+>
+> Todo medido de punta a punta en
+> [`06_canonicalizacion_y_etiquetado.md`](06_canonicalizacion_y_etiquetado.md). **Lean ése
+> antes que esta sección.**
 
 ### Qué propongo
 
 1. **Reportar métricas de dominio como principales** y accuracy como diagnóstico
    secundario: violación de capacidad, brecha de vehículos cargados, brecha de CU,
-   diferidos, latencia. Es lo que ya pide `05_evaluation.md`.
+   diferidos, latencia. Es lo que ya pide `05_evaluation.md`. Y cuando se reporte
+   accuracy, **acompañarla de su techo** (`scripts/label_ceiling.py`).
 2. **Canonicalizar la flota antes de entrenar.** `src/modeling/canonicalization.py`
    ordena los camiones por capacidad descendente y remapea las etiquetas. No cambia
    ningún plan: sólo cambia el nombre del camión. Está probado
    (`tests/modeling/test_canonicalization.py`) y se puede importar sin arrastrar el resto
    de mi paquete. Si los tres lo aplicamos, la comparación entre los cinco modelos es
    justa; si no, cada uno mide contra una convención distinta.
+   **Ojo: esto solo no sube la exactitud** — desbloquea `CAMION_3`/`CAMION_4` y hace
+   comparables los modelos. El salto grande es el punto 3.
+3. **Decidir en grupo si ordenamos la flota en `scenarios.py`.** Cuesta 8 minutos de
+   regeneración y obliga a reentrenar los cinco modelos. No lo apliqué solo.
 
 ---
 
@@ -189,7 +208,7 @@ Todo bajo `src/modeling/`, con 80 tests en `tests/modeling/`:
 | `canonicalization.py` | Orden canónico de la flota y remapeo de etiquetas |
 | `features.py` | Esquema de features y estandarización ajustada sólo con entrenamiento |
 | `capacity_decoder.py` | Decodificación factible — **sirve para cualquiera de los cinco modelos**, sólo necesita puntuaciones por vehículo y camión |
-| `metrics.py` | Métricas de dominio y concordancia por clase |
+| `metrics.py` | Métricas de dominio, concordancia por clase y `label_ceilings()` — el techo exacto de exactitud, que no depende de la arquitectura y sirve para los cinco |
 
 `capacity_decoder.py` y `metrics.py` son los más reutilizables: si ustedes producen
 probabilidades por vehículo, pueden pasarlas por el mismo decoder y medir con las mismas
@@ -205,4 +224,6 @@ uv run python scripts/build_scenarios.py
 uv run python scripts/train_mlp.py
 uv run python scripts/evaluate_mlp.py
 uv run python scripts/teacher_self_agreement.py --years 2026
+uv run python scripts/teacher_self_agreement.py --years 2026 --fleet-order asc
+uv run python scripts/label_ceiling.py
 ```

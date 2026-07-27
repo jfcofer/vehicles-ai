@@ -159,6 +159,9 @@ de en qué camión concreto viaja cada vehículo— pero significa que el modelo
 el reparto del etiquetador entre camiones**, y explica tanto la brecha de CU como el F1
 macro bajo.
 
+Este colapso resultó **no ser una limitación del modelo**: desaparece al fijar el orden de
+la flota en el etiquetador, sin tocar la arquitectura (§5.5).
+
 ### 5.3 El modelo es insensible a los hiper-parámetros dentro del ruido
 
 Ocho configuraciones entrenadas y evaluadas (`artifacts/mlp/sweep/summary.json`) producen
@@ -194,16 +197,51 @@ comparó su nueva respuesta con la original, ambas canonicalizadas
 | \|Δ CU aprovechada\| | **0,0000** |
 
 El oráculo que generó las etiquetas reproduce menos del 40 % de ellas, mientras el
-resultado operativo es exactamente el mismo. Cerca del 60 % de la etiqueta es ruido de
-desempate: procede del barajado sembrado con que el etiquetador reparte los cupos dentro de
-una clase, y del hecho de que su programación dinámica llena primero el camión de índice 0,
-que es de capacidad aleatoria.
+resultado operativo es exactamente el mismo. Esa discrepancia tiene dos orígenes: el
+barajado sembrado con que el etiquetador reparte los cupos dentro de una clase, y el hecho
+de que su programación dinámica llena primero el camión de índice 0, que es de capacidad
+aleatoria.
 
-La exactitud del modelo (0,5297) queda por encima de esa autoconsistencia. Debe precisarse
-que ello **no** significa haber superado un techo teórico: predecir la moda de una variable
-aleatoria coincide con una muestra más a menudo de lo que dos muestras independientes
-coinciden entre sí. Lo que la cifra establece es que la exactitud no mide la calidad del
-plan en este problema, y que las métricas de dominio son la vara correcta.
+Esa cifra, sin embargo, **no es un techo**: predecir la moda de una variable aleatoria
+coincide con una muestra más a menudo de lo que dos muestras independientes coinciden entre
+sí. El techo hay que calcularlo aparte, y es lo que hace la sección siguiente.
+
+### 5.5 El techo exacto, y qué parte de la brecha es recuperable
+
+Dos vehículos de la misma clase en el mismo episodio tienen features idénticas: misma `cu`,
+mismo one-hot, mismo `n_misma_clase`, mismo contexto. Ninguna entrada los distingue, así que
+la exactitud alcanzable está acotada en forma cerrada. Con `n(c,t)` = vehículos de la clase
+`c` que el etiquetador mandó al destino `t`, y `m_c = Σ_t n(c,t)`
+(`src/modeling/metrics.py:label_ceilings`):
+
+```
+Cota A  (modelo determinista por vehículo)  =  Σ_c max_t n(c,t)      / N
+Cota B  (pipeline con decodificador)        =  Σ_c Σ_t n(c,t)² / m_c / N
+```
+
+| Partición de prueba (2026) | |
+|---|---:|
+| Cota A — techo de un clasificador determinista | **0,9243** |
+| Cota B — techo del pipeline con decodificador | **0,9005** |
+| Exactitud medida del modelo | 0,5297 |
+| Fracción del techo alcanzada | **58,8 %** |
+
+Dos comprobaciones de que la cifra es correcta: es **invariante a la canonicalización**
+(0,9084 global con y sin canonicalizar, idéntico — permutar el eje de destinos no altera
+`max_t` ni `Σ_t n²`), y **cierra contra una medición independiente**: con la flota fijada,
+la auto-concordancia del etiquetador debe igualar la cota B, y da 0,9309 analítica frente a
+0,9306 medida sobre los mismos 1.158 episodios.
+
+La conclusión corrige la lectura natural de la sección 5.4: el ruido irreducible vale unos
+**8 puntos**, no 60. Los otros ~37 puntos de brecha vienen de que el orden en que llega la
+flota cambia el *plan* del etiquetador, y ese orden no es una entrada del modelo. Es una
+propiedad del generador de datos, no del clasificador ni de las etiquetas en sí: fijando el
+orden de la flota antes de etiquetar —una línea en `src/loading/scenarios.py`— el mismo
+modelo, con los mismos hiper-parámetros y la misma semilla, pasa a **0,8458** de exactitud,
+**0,8131** de F1 macro y **0,872** de cobertura en `CAMIÓN 4`, sin que las métricas
+operativas se muevan. La medición completa está en
+[`06_canonicalizacion_y_etiquetado.md`](06_canonicalizacion_y_etiquetado.md); el cambio no
+se aplicó porque invalida los modelos ya entrenados por el resto del equipo.
 
 ---
 
@@ -243,8 +281,11 @@ ventaja sobre el greedy desaparece (+0,0137 frente a +0,0157).
    multiplica por diez; la concordancia por clase, en cambio, no cambia.
 4. **La arquitectura por pares cumple el requisito de flota sin límite codificado**, y se
    verificó ejecutando el modelo entrenado sobre manifiestos de diez camiones.
-5. **La baja exactitud es una propiedad de las etiquetas, no del modelo.** Está medido: el
-   propio etiquetador reproduce menos del 40 % de sus etiquetas ante una flota permutada.
+5. **La baja exactitud es una propiedad del generador de datos, no del modelo — y es
+   recuperable.** El techo exacto sobre estas etiquetas es 0,9243 y el modelo alcanza el
+   58,8 % de él. La brecha se explica: el orden aleatorio de la flota cambia el plan del
+   etiquetador y no es una entrada observable. Fijando ese orden, el mismo modelo llega a
+   0,8458 (97,7 % de su techo). Sólo unos 8 puntos son ruido irreducible.
 6. **El techo no está en los hiper-parámetros.** Ocho configuraciones caen dentro de
    ±0,004 y la diferencia entre la mejor y la adoptada no es significativa (t = 1,51);
    triplicar los parámetros empeora el resultado.
@@ -257,9 +298,10 @@ ventaja sobre el greedy desaparece (+0,0137 frente a +0,0157).
 - **Cerrar la brecha de CU.** El greedy aprovecha más capacidad. Una función de pérdida que
   penalice el desperdicio, o un decodificador que reordene por CU cuando la capacidad
   escasea, son las dos vías inmediatas.
-- **Recuperar la discriminación entre camiones.** La cobertura nula de `CAMIÓN 4` sugiere
-  que la señal de "a qué camión" está demasiado diluida por el ruido de etiquetado. Una vía
-  es entrenar contra un etiquetador con desempate determinista por capacidad.
+- **Recuperar la discriminación entre camiones — ya está diagnosticado y medido.** La
+  cobertura nula de `CAMIÓN 4` no es un límite del modelo: ordenando la flota antes de
+  etiquetar sube a 0,872 y el F1 macro a 0,8131 (§5.5). Falta la decisión del equipo de
+  regenerar el dataset, porque obliga a reentrenar los cinco modelos.
 - **Construir conjuntos de extrapolación exigentes**, con déficit de capacidad forzado, para
   que la prueba de flotas grandes discrimine.
 - **Ablación de `canton`**, hoy excluido por no participar en la restricción de capacidad.

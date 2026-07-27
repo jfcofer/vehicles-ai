@@ -10,6 +10,7 @@
 | [`03_resultados_mlp.md`](03_resultados_mlp.md) | Resultados medidos, ablaciones y limitaciones | **Sección VII** — aporta la parte del MLP |
 | [`04_anexo_ia_juan.md`](04_anexo_ia_juan.md) | Preguntas, respuestas, qué se aceptó y qué se rechazó | **Anexo A, B y C** |
 | [`05_hallazgos_para_el_equipo.md`](05_hallazgos_para_el_equipo.md) | Lo que afecta a los cinco modelos y los vacíos sin dueño | **Interno — no va al reporte** |
+| [`06_canonicalizacion_y_etiquetado.md`](06_canonicalizacion_y_etiquetado.md) | Las cuatro fuentes de arbitrariedad de la etiqueta, el techo exacto de exactitud y el arreglo medido | **Interno**, salvo §5 y §8 → **VII** y **VIII** |
 
 Transcripción de la sesión de IA:
 [`chat/2026-07-25-juan-mlp-design-training-evaluation.md`](../../chat/2026-07-25-juan-mlp-design-training-evaluation.md).
@@ -32,13 +33,22 @@ Titulares:
 - La arquitectura de puntuación por par cumple el requisito de flota sin límite codificado:
   se verificó ejecutando **los mismos pesos sobre manifiestos de diez camiones**, sin
   reentrenar.
-- **La baja exactitud (0,53) es una propiedad de las etiquetas, no del modelo.** Está
-  medido: el propio etiquetador exacto, ante la misma flota permutada, reproduce sólo el
-  39,83 % de sus propias etiquetas mientras el resultado operativo es idéntico.
+- **La baja exactitud (0,53) es una propiedad del generador de datos, no del modelo — y es
+  recuperable.** El techo exacto sobre estas etiquetas es **0,9243** y el modelo alcanza el
+  58,8 % de él. La brecha se explica: el orden aleatorio de la flota cambia el *plan* del
+  etiquetador y no es una entrada observable. Fijando ese orden, el mismo modelo llega a
+  **0,8458** de exactitud y **0,8131** de F1 macro sin mover las métricas operativas.
+  Sólo unos 8 puntos son ruido irreducible.
 
 Limitaciones declaradas, no ocultadas: el modelo **no aporta a la elección de camión**
 (demostrado por ablación), pierde frente al greedy en aprovechamiento de CU, y la
 generalización a flotas grandes está demostrada como factibilidad, no como calidad.
+
+> **Corrección del 27 de julio.** Una versión anterior de este resumen concluía que "cerca
+> del 60 % de la etiqueta es ruido irreducible", apoyándose en la auto-concordancia del
+> etiquetador (0,3983). Esa cifra nunca fue un techo. Calculado el techo real, la mayor
+> parte de esa brecha resultó **eliminable**, no irreducible. El análisis completo está en
+> [`06_canonicalizacion_y_etiquetado.md`](06_canonicalizacion_y_etiquetado.md).
 
 ---
 
@@ -52,7 +62,18 @@ uv run python scripts/build_scenarios.py            # ~7 min
 uv run python scripts/train_mlp.py                  # ~3 min en CPU
 uv run python scripts/evaluate_mlp.py
 uv run python scripts/teacher_self_agreement.py --years 2026
-uv run pytest tests/modeling                        # 80 pruebas
+uv run python scripts/label_ceiling.py              # techo exacto de exactitud
+uv run pytest tests/modeling                        # 88 pruebas
+```
+
+Experimento del orden de la flota (§6 del documento 06), sin tocar `data/episodes/`:
+
+```bash
+uv run python artifacts/mlp/fleet_order_experiment/build_sorted_episodes.py \
+    --order asc --out /tmp/episodes_asc              # ~8 min
+uv run python scripts/train_mlp.py    --episodes-dir /tmp/episodes_asc --out-dir /tmp/mlp_asc
+uv run python scripts/evaluate_mlp.py --model-dir /tmp/mlp_asc --episodes-dir /tmp/episodes_asc
+uv run python scripts/teacher_self_agreement.py --years 2026 --fleet-order asc
 ```
 
 > **Nota de entorno.** El intérprete del sistema es Python 3.14 y TensorFlow 2.21 sólo
@@ -78,6 +99,8 @@ config/mlp.yaml
 pyproject.toml + uv.lock
 src/modeling/{canonicalization,dataset,features,mlp_classifier,capacity_decoder,metrics}.py
 scripts/{train_mlp,evaluate_mlp,sweep_mlp,build_extrapolation_set,teacher_self_agreement}.py
-tests/modeling/            80 pruebas
+scripts/label_ceiling.py
+tests/modeling/            88 pruebas
 artifacts/mlp/             modelo, métricas, curvas, matriz de confusión
+artifacts/mlp/fleet_order_experiment/   evidencia del §6 del documento 06
 ```

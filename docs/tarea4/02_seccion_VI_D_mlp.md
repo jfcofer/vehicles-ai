@@ -208,6 +208,15 @@ misma partición de entrenamiento (444.051 filas):
 La clase `CAMIÓN 4` pasa de estar prácticamente ausente a tener representación medible, y
 la etiqueta se convierte en una función de una característica que el modelo sí observa.
 
+**Alcance de esta corrección.** La canonicalización arregla el *nombre* del camión, no el
+*plan*. El orden en que llega la flota también determina cuál de los óptimos empatados
+devuelve la programación dinámica —con `[6,0 · 4,0]` llena el camión grande y con
+`[4,0 · 6,0]` el chico, y ningún renombramiento lleva un plan al otro—, y eso la
+canonicalización aguas abajo no lo toca. Corregirlo requiere ordenar la flota **antes** de
+etiquetar, en el generador de escenarios, lo que obliga a regenerar el conjunto de datos y
+reentrenar los cinco modelos del grupo; queda medido y declarado como limitación en la
+sección 7, no aplicado.
+
 ---
 
 ## 5. Definición y justificación de los hiper-parámetros
@@ -307,23 +316,35 @@ aparecer en dos particiones.
 
 Se enuncian de forma explícita para no atribuir al diseño propiedades que no se midieron.
 
-1. **La etiqueta es sólo parcialmente predecible.** Presentando al etiquetador exacto la
-   misma flota en distinto orden —una situación operativamente idéntica— reproduce apenas
-   el 39,83 % de sus propias etiquetas y el 44,93 % de la concordancia por clase,
-   mientras que el resultado operativo (vehículos cargados y CU aprovechada) es idéntico.
-   El resto es ruido de desempate que ningún clasificador puede predecir. Por eso la
-   exactitud se reporta como diagnóstico secundario y no como métrica de calidad.
+1. **La etiqueta es sólo parcialmente predecible, y la causa está identificada.**
+   Presentando al etiquetador exacto la misma flota en distinto orden —una situación
+   operativamente idéntica— reproduce apenas el 39,83 % de sus propias etiquetas, mientras
+   que el resultado operativo (vehículos cargados y CU aprovechada) es idéntico. Ahora
+   bien, esa cifra **no es el techo**: el techo exacto, derivado de que dos vehículos de la
+   misma clase tienen características idénticas, es **0,9243** sobre la partición de
+   prueba, y el modelo alcanza el 58,8 % de él. La brecha restante procede del orden
+   aleatorio de la flota, que no es una entrada observable; fijándolo antes de etiquetar,
+   el mismo modelo alcanza 0,8458 de exactitud y 0,8131 de F1 macro. El ruido
+   verdaderamente irreducible vale unos 8 puntos. Por eso la exactitud se reporta como
+   diagnóstico secundario y **siempre acompañada de su techo**.
 
-2. **La generalización a flotas mayores está demostrada como factibilidad, no como
+2. **El conjunto de datos hereda una arbitrariedad corregible que no se corrigió.** El
+   generador de escenarios sortea las capacidades sin ordenarlas, y eso determina cuál de
+   los planes óptimos empatados devuelve el etiquetador. Está medido lo que cuesta y lo que
+   se gana (sección 4 y `docs/tarea4/06_canonicalizacion_y_etiquetado.md`); no se aplicó
+   porque obliga a regenerar el conjunto y reentrenar los cinco modelos del grupo, decisión
+   que no corresponde a este entregable.
+
+3. **La generalización a flotas mayores está demostrada como factibilidad, no como
    calidad.** Los datos de entrenamiento contienen entre uno y cuatro camiones. El modelo
    guardado acepta y resuelve manifiestos de hasta diez camiones con los mismos pesos y
    sin violar capacidad, pero los conjuntos de extrapolación construidos resultaron poco
    exigentes; la sección VII detalla el alcance de esa evidencia.
 
-3. **El decodificador es heurístico.** Garantiza factibilidad, no optimalidad. La distancia
+4. **El decodificador es heurístico.** Garantiza factibilidad, no optimalidad. La distancia
    respecto al óptimo se mide contra el etiquetador exacto y se reporta como brecha.
 
-4. **El escenario es sintético.** Los registros del SRI son matriculaciones, no manifiestos
+5. **El escenario es sintético.** Los registros del SRI son matriculaciones, no manifiestos
    de transporte, y las flotas se generan aleatoriamente. Las conclusiones se refieren a
    la capacidad del modelo de imitar al etiquetador exacto, no a operaciones reales.
 
