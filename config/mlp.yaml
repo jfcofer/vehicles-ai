@@ -1,0 +1,51 @@
+# config/mlp.yaml
+#
+# Hiper-parámetros del clasificador MLP compartido por par (vehículo, camión).
+# La justificación de cada valor está en docs/tarea4/02_seccion_VI_D_mlp.md.
+#
+# Todos son valores INICIALES salvo los que la búsqueda de la Fase 5 haya
+# confirmado; el archivo de métricas registra cuál fue cuál.
+
+model:
+  # Cabeza de pares: recibe vehículo ⊕ camión ⊕ contexto (19 features).
+  # Dos capas estrechas bastan porque la interacción a aprender es local
+  # (¿cabe este vehículo aquí?), no una función de alta dimensión.
+  pair_units: [64, 32]
+
+  # Cabeza de diferimiento: recibe vehículo ⊕ contexto (16 features).
+  # Más pequeña porque su decisión depende sobre todo del déficit agregado.
+  defer_units: [32, 16]
+
+  # Regularización: los episodios son sintéticos y muy repetitivos entre
+  # semanas del mismo cantón; sin esto el modelo memoriza la identidad del
+  # episodio en lugar de la relación capacidad-CU.
+  dropout: 0.20
+  l2: 0.0001
+
+optimization:
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  clipnorm: 1.0
+  batch_size: 256
+  epochs: 100
+
+  # Cota superior, no objetivo: el entrenamiento para solo cuando la pérdida
+  # de validación deja de mejorar.
+  early_stopping_patience: 10
+  reduce_lr_patience: 4
+  reduce_lr_factor: 0.5
+
+  seed: 20260725
+
+data:
+  # Partición temporal. 2017 no existe en el dataset: el CSV de ese año no
+  # trae FECHA PROCESO y `load_all_years` lo descarta.
+  train_years: [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+  val_years: [2025]
+  test_years: [2026]
+
+decoder:
+  # Política de orden del decoder. "count" ordena por CU ascendente, alineado
+  # con el objetivo lexicográfico del maestro (primero conteo, luego CU).
+  # Se elige por validación entre model / count / respect_defer.
+  policy: count

@@ -1,0 +1,103 @@
+{
+  "generated": "2026-07-25 23:03 UTC",
+  "episodes_dir": "data/episodes/smoke200",
+  "split_strategy": "hash",
+  "episodes_dropped_non_optimal": 0,
+  "splits": [
+    {
+      "name": "train",
+      "n_episodes": 131,
+      "n_rows": 1899,
+      "n_deferred_rows": 116,
+      "deferred_pct": 6.1085,
+      "years": [
+        2018
+      ]
+    },
+    {
+      "name": "val",
+      "n_episodes": 28,
+      "n_rows": 396,
+      "n_deferred_rows": 39,
+      "deferred_pct": 9.8485,
+      "years": [
+        2018
+      ]
+    },
+    {
+      "name": "test",
+      "n_episodes": 41,
+      "n_rows": 599,
+      "n_deferred_rows": 24,
+      "deferred_pct": 4.0067,
+      "years": [
+        2018
+      ]
+    }
+  ],
+  "canonical_label_counts": {
+    "train": {
+      "0": 116,
+      "1": 980,
+      "2": 500,
+      "3": 235,
+      "4": 68
+    },
+    "val": {
+      "0": 39,
+      "1": 220,
+      "2": 104,
+      "3": 28,
+      "4": 5
+    },
+    "test": {
+      "0": 24,
+      "1": 257,
+      "2": 185,
+      "3": 106,
+      "4": 27
+    }
+  },
+  "deferred_weight": 8.185344696044922,
+  "config": {
+    "pair_units": [
+      64,
+      32
+    ],
+    "defer_units": [
+      32,
+      16
+    ],
+    "dropout": 0.2,
+    "l2": 0.0001,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "clipnorm": 1.0,
+    "batch_size": 256,
+    "epochs": 3,
+    "early_stopping_patience": 10,
+    "reduce_lr_patience": 4,
+    "reduce_lr_factor": 0.5,
+    "seed": 20260725
+  },
+  "unweighted_loss": {
+    "train": {
+      "loss": 1.3349714279174805,
+      "raw_assignment_accuracy": 0.10847814381122589
+    },
+    "val": {
+      "loss": 1.280163288116455,
+      "raw_assignment_accuracy": 0.16161616146564484
+    },
+    "test": {
+      "loss": 1.4031280279159546,
+      "raw_assignment_accuracy": 0.12687812745571136
+    }
+  },
+  "epochs_run": 3,
+  "best_epoch_zero_based": 0,
+  "best_val_loss": 1.280163288116455,
+  "best_val_raw_accuracy": 0.16161616146564484,
+  "training_seconds": 1.6,
+  "n_parameters": 4482
+}

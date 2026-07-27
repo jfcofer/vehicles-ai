@@ -1,0 +1,11 @@
+{
+  "years": [
+    2026
+  ],
+  "n_episodes_compared": 1158,
+  "teacher_raw_self_accuracy_mean": 0.398303968659705,
+  "teacher_class_level_self_agreement_mean": 0.44925549092473094,
+  "episodes_reproduced_identically_pct": 35.57858376511226,
+  "n_loaded_absolute_delta_mean": 0.0,
+  "cu_utilized_absolute_delta_mean": 0.0
+}

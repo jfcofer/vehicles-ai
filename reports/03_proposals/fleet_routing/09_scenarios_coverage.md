@@ -5,8 +5,8 @@
 > python3 scripts/build_scenarios.py
 > ```
 
-**Generated:** 2026-07-26 21:22 UTC  
-**Elapsed:** 773.4s  
+**Generated:** 2026-07-25 22:33 UTC  
+**Elapsed:** 420.4s  
 **Floor (min N kept):** 5  
 **Max N per episode (subsample cap):** 20
 
@@ -27,5 +27,5 @@
 | Filas en episode_vehicles.parquet | 534,680 |
 | Episodios triviales (nadie deferido) | 29,860 (85.7%)
 | Episodios no-óptimos (time_budget agotado) | 0 |
-| search_time_ms promedio | 18.5
-| search_time_ms p99 | 291.3
+| search_time_ms promedio | 10.8
+| search_time_ms p99 | 167.6

@@ -1,0 +1,8 @@
+{
+  "0": "SIN_CAMION",
+  "1": "CAMION_1",
+  "2": "CAMION_2",
+  "3": "CAMION_3",
+  "4": "CAMION_4",
+  "_nota": "Índices canónicos: CAMION_1 es el camión de MAYOR capacidad del episodio, no el primero que produjo el generador. Ver src/modeling/canonicalization.py."
+}

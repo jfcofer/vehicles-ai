@@ -1,0 +1,95 @@
+{
+  "generated": "2026-07-25 22:39 UTC",
+  "episodes_dir": "/home/jfcofer/Documents/jfco/espol/2026_1/ia/2p/tasks/task 4/repo/data/episodes",
+  "split_strategy": "time",
+  "episodes_dropped_non_optimal": 0,
+  "splits": [
+    {
+      "name": "train",
+      "n_episodes": 29278,
+      "n_rows": 444051,
+      "n_deferred_rows": 18903,
+      "deferred_pct": 4.2569,
+      "years": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ]
+    },
+    {
+      "name": "val",
+      "n_episodes": 4030,
+      "n_rows": 66399,
+      "n_deferred_rows": 2750,
+      "deferred_pct": 4.1416,
+      "years": [
+        2025
+      ]
+    },
+    {
+      "name": "test",
+      "n_episodes": 1531,
+      "n_rows": 24230,
+      "n_deferred_rows": 1000,
+      "deferred_pct": 4.1271,
+      "years": [
+        2026
+      ]
+    }
+  ],
+  "canonical_label_counts": {
+    "train": {
+      "0": 18903,
+      "1": 232175,
+      "2": 112478,
+      "3": 58424,
+      "4": 22071
+    },
+    "val": {
+      "0": 2750,
+      "1": 35244,
+      "2": 16705,
+      "3": 8368,
+      "4": 3332
+    },
+    "test": {
+      "0": 1000,
+      "1": 12706,
+      "2": 6204,
+      "3": 2999,
+      "4": 1321
+    }
+  },
+  "deferred_weight": 11.745516777038574,
+  "config": {
+    "pair_units": [
+      64,
+      32
+    ],
+    "defer_units": [
+      32,
+      16
+    ],
+    "dropout": 0.2,
+    "l2": 0.0001,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "clipnorm": 1.0,
+    "batch_size": 256,
+    "epochs": 100,
+    "early_stopping_patience": 10,
+    "reduce_lr_patience": 4,
+    "reduce_lr_factor": 0.5,
+    "seed": 20260725
+  },
+  "epochs_run": 56,
+  "best_epoch_zero_based": 45,
+  "best_val_loss": 0.9236994385719299,
+  "best_val_raw_accuracy": 0.5252187252044678,
+  "training_seconds": 150.5,
+  "n_parameters": 4482
+}
