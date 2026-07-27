@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import os
+
 import mlflow
+
+MLFLOW_DB = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "mlflow.db")
+mlflow.set_tracking_uri(f"sqlite:///{MLFLOW_DB}")
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
