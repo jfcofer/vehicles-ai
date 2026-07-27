@@ -11,6 +11,7 @@
 | [`04_anexo_ia_juan.md`](04_anexo_ia_juan.md) | Preguntas, respuestas, qué se aceptó y qué se rechazó | **Anexo A, B y C** |
 | [`05_hallazgos_para_el_equipo.md`](05_hallazgos_para_el_equipo.md) | Lo que afecta a los cinco modelos y los vacíos sin dueño | **Interno — no va al reporte** |
 | [`06_canonicalizacion_y_etiquetado.md`](06_canonicalizacion_y_etiquetado.md) | Las cuatro fuentes de arbitrariedad de la etiqueta, el techo exacto de exactitud y el arreglo medido | **Interno**, salvo §5 y §8 → **VII** y **VIII** |
+| [`07_mensaje_al_equipo.md`](07_mensaje_al_equipo.md) | Versión corta del `06_` para enviar por chat, con la decisión que hay que tomar | **Interno — para Víctor y Nicolás** |
 
 Transcripción de la sesión de IA:
 [`chat/2026-07-25-juan-mlp-design-training-evaluation.md`](../../chat/2026-07-25-juan-mlp-design-training-evaluation.md).
