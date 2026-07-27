@@ -5,8 +5,8 @@
 > python3 scripts/build_scenarios.py
 > ```
 
-**Generated:** 2026-07-18 15:57 UTC  
-**Elapsed:** 3.6s  
+**Generated:** 2026-07-26 21:22 UTC  
+**Elapsed:** 773.4s  
 **Floor (min N kept):** 5  
 **Max N per episode (subsample cap):** 20
 
@@ -16,16 +16,16 @@
 
 | | |
 |---|---|
-| Grupos semana-cantón totales | 360 |
-| Excluidos por piso (N<5) | 160 |
-| Episodios construidos y etiquetados | 200 |
+| Grupos semana-cantón totales | 55,076 |
+| Excluidos por piso (N<5) | 20,237 |
+| Episodios construidos y etiquetados | 34,839 |
 
 ## Resultado del labeler
 
 | | |
 |---|---|
-| Filas en episode_vehicles.parquet | 2,894 |
-| Episodios triviales (nadie deferido) | 153 (76.5%)
+| Filas en episode_vehicles.parquet | 534,680 |
+| Episodios triviales (nadie deferido) | 29,860 (85.7%)
 | Episodios no-óptimos (time_budget agotado) | 0 |
-| search_time_ms promedio | 13.8
-| search_time_ms p99 | 138.2
+| search_time_ms promedio | 18.5
+| search_time_ms p99 | 291.3

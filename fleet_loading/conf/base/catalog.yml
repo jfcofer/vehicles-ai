@@ -1,0 +1,27 @@
+vehicles:
+  type: pandas.ParquetDataset
+  filepath: /home/vicbguti/Projects/vehicles/data/episodes/episode_vehicles.parquet
+
+episodes:
+  type: pandas.ParquetDataset
+  filepath: /home/vicbguti/Projects/vehicles/data/episodes/episodes.parquet
+
+encoded_vehicles:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/encoded_vehicles.parquet
+
+train_df:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/train.parquet
+
+val_df:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/val.parquet
+
+xgb_results:
+  type: json.JSONDataset
+  filepath: data/07_model_output/xgb_results.json
+
+lgb_results:
+  type: json.JSONDataset
+  filepath: data/07_model_output/lgb_results.json

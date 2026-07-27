@@ -5,7 +5,7 @@
 > python3 scripts/build_vehicle_features.py
 > ```
 
-**Generated:** 2026-07-17 17:27 UTC  
+**Generated:** 2026-07-25 16:28 UTC  
 **Output:** `data/features/vehicles_in_scope.parquet`  
 **Skipped years (no process-date column):** 2017
 

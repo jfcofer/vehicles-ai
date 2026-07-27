@@ -1,0 +1,22 @@
+test_size: 0.2
+
+xgboost:
+  run_name: xgboost_baseline
+  max_depth: 5
+  learning_rate: 0.1
+  n_estimators: 500
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_weight: 3
+  scale_pos_weight: 200
+  max_delta_step: 0
+
+lightgbm:
+  run_name: lightgbm_baseline
+  num_leaves: 15
+  learning_rate: 0.1
+  n_estimators: 500
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_samples: 5
+  scale_pos_weight: 50
