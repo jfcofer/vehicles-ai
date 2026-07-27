@@ -25,3 +25,7 @@ xgb_results:
 lgb_results:
   type: json.JSONDataset
   filepath: data/07_model_output/lgb_results.json
+
+att_results:
+  type: json.JSONDataset
+  filepath: data/07_model_output/att_results.json

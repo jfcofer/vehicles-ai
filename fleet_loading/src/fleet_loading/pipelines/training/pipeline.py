@@ -3,6 +3,7 @@ from kedro.pipeline import Pipeline, node, pipeline
 from .nodes import (
     encode_features,
     split_data,
+    train_attention,
     train_lightgbm,
     train_xgboost,
 )
@@ -57,6 +58,24 @@ def create_pipeline(**kwargs) -> Pipeline:
                 ],
                 outputs="lgb_results",
                 name="train_lightgbm",
+            ),
+            node(
+                func=train_attention,
+                inputs=[
+                    "train_df",
+                    "val_df",
+                    "episodes",
+                    "params:attention.d_model",
+                    "params:attention.nhead",
+                    "params:attention.num_layers",
+                    "params:attention.dropout",
+                    "params:attention.batch_size",
+                    "params:attention.learning_rate",
+                    "params:attention.n_epochs",
+                    "params:attention.run_name",
+                ],
+                outputs="att_results",
+                name="train_attention",
             ),
         ]
     )

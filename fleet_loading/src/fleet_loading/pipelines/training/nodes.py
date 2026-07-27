@@ -288,3 +288,25 @@ def train_lightgbm(
             "lgb_val_accuracy": acc,
             "lgb_val_defer_f1": f1,
         }
+
+
+def train_attention(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    episodes: pd.DataFrame,
+    d_model: int,
+    nhead: int,
+    num_layers: int,
+    dropout: float,
+    batch_size: int,
+    learning_rate: float,
+    n_epochs: int,
+    run_name: str,
+) -> dict:
+    from fleet_loading.pipelines.training.attention_model import train_attention as _train
+
+    return _train(
+        train_df, val_df, episodes,
+        d_model, nhead, num_layers, dropout,
+        batch_size, learning_rate, n_epochs, run_name,
+    )
