@@ -105,6 +105,14 @@ def collate_episodes(batch):
         label_mask[i] = torch.from_numpy(item["label_mask"])
         pad_mask[i, :n] = False
 
+    capacities = torch.zeros(n_eps, MAX_TRUCKS)
+    n_trucks_arr = torch.zeros(n_eps, dtype=torch.long)
+
+    for i, item in enumerate(batch):
+        n = item["n"]
+        capacities[i, :item["n_trucks"]] = torch.from_numpy(item["capacities"])
+        n_trucks_arr[i] = item["n_trucks"]
+
     return {
         "cu": cu,
         "canton": canton,
@@ -113,6 +121,8 @@ def collate_episodes(batch):
         "labels": labels,
         "label_mask": label_mask,
         "pad_mask": pad_mask,
+        "capacities": capacities,
+        "n_trucks": n_trucks_arr,
     }
 
 
@@ -168,6 +178,40 @@ class AttentionModel(nn.Module):
         out = self.transformer(vehicle_emb, src_key_padding_mask=pad_mask)
         logits = self.output_head(out)
         return logits
+
+
+@torch.no_grad()
+def predict_with_capacity(
+    logits: torch.Tensor,
+    cu: torch.Tensor,
+    capacities: torch.Tensor,
+    n_trucks_arr: torch.Tensor,
+    pad_mask: torch.Tensor,
+) -> torch.Tensor:
+    batch_size, max_n, _ = logits.shape
+    preds = torch.full((batch_size, max_n), DEFER_LABEL, dtype=torch.long, device=logits.device)
+
+    for b in range(batch_size):
+        n = max_n - pad_mask[b].sum().item()
+        remaining = capacities[b].clone()
+        n_trucks = int(n_trucks_arr[b].item())
+
+        cu_order = torch.argsort(cu[b, :n], descending=True)
+
+        for idx in cu_order:
+            vehicle_cu = cu[b, idx].item()
+            truck_logits = logits[b, idx, :n_trucks]
+            valid = remaining[:n_trucks] >= vehicle_cu
+            if valid.any():
+                masked = truck_logits.clone()
+                masked[~valid] = -float("inf")
+                chosen = masked.argmax().item()
+                preds[b, idx] = chosen
+                remaining[chosen] -= vehicle_cu
+            else:
+                preds[b, idx] = DEFER_LABEL
+
+    return preds
 
 
 def train_attention(
@@ -278,6 +322,41 @@ def train_attention(
     best = val_metrics[best_idx]
     print(f"\nBest val_def_f1={best['def_f1']:.4f} at epoch {best_idx+1}")
 
+    # Evaluate best model with capacity masking
+    best_ckpt = {k: v for k, v in model.state_dict().items()}
+    model.load_state_dict(best_ckpt)
+
+    model.eval()
+    cap_correct = 0
+    cap_def_correct = 0
+    cap_def_pred = 0
+    n_total = 0
+    n_def_actual = 0
+
+    with torch.no_grad():
+        for batch in val_loader:
+            batch = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
+            logits = model(batch)
+            labels = batch["labels"]
+            mask = labels != -100
+            cap_preds = predict_with_capacity(
+                logits, batch["cu"], batch["capacities"],
+                batch["n_trucks"], batch["pad_mask"],
+            )
+            cap_correct += ((cap_preds == labels) & mask).sum().item()
+            n_total += mask.sum().item()
+            def_actual = (labels == DEFER_LABEL) & mask
+            cap_def = (cap_preds == DEFER_LABEL) & mask
+            cap_def_correct += (cap_def & def_actual).sum().item()
+            cap_def_pred += cap_def.sum().item()
+            n_def_actual += def_actual.sum().item()
+
+    cap_acc = cap_correct / n_total if n_total > 0 else 0.0
+    cap_def_prec = cap_def_correct / cap_def_pred if cap_def_pred > 0 else 0.0
+    cap_def_rec = cap_def_correct / n_def_actual if n_def_actual > 0 else 0.0
+    cap_def_f1 = 2 * cap_def_prec * cap_def_rec / (cap_def_prec + cap_def_rec) if (cap_def_prec + cap_def_rec) > 0 else 0.0
+    print(f"Capacity-aware:   val_acc={cap_acc:.4f}  val_def_f1={cap_def_f1:.4f}")
+
     import mlflow
     import tempfile
     import os
@@ -296,10 +375,17 @@ def train_attention(
         })
         mlflow.log_metric("att_val_accuracy", best["acc"])
         mlflow.log_metric("att_val_defer_f1", best["def_f1"])
+        mlflow.log_metric("att_cap_accuracy", cap_acc)
+        mlflow.log_metric("att_cap_defer_f1", cap_def_f1)
 
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "model.pt")
             torch.save({"model_state_dict": model.state_dict(), "n_canton": train_ds.n_canton, "n_clase": train_ds.n_clase}, path)
             mlflow.log_artifact(path, "model")
 
-    return {"att_val_accuracy": best["acc"], "att_val_defer_f1": best["def_f1"]}
+    return {
+        "att_val_accuracy": best["acc"],
+        "att_val_defer_f1": best["def_f1"],
+        "att_cap_accuracy": cap_acc,
+        "att_cap_defer_f1": cap_def_f1,
+    }
